@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { ClerkProvider } from '@clerk/nextjs'
 import { Toaster } from 'sonner'
 
 const inter = Inter({
@@ -20,15 +19,31 @@ export const metadata: Metadata = {
   },
 }
 
+// Wrapper component to conditionally use Clerk
+function AuthWrapper({ children }: { children: React.ReactNode }) {
+  // Check if Clerk is configured
+  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  const isClerkConfigured = clerkKey && !clerkKey.includes('demo')
+
+  if (isClerkConfigured) {
+    // Dynamic import to avoid errors when Clerk isn't configured
+    const { ClerkProvider } = require('@clerk/nextjs')
+    return <ClerkProvider>{children}</ClerkProvider>
+  }
+
+  // Demo mode - no auth
+  return <>{children}</>
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en" className="dark">
-        <body className={`${inter.variable} font-sans`}>
+    <html lang="en" className="dark">
+      <body className={`${inter.variable} font-sans`}>
+        <AuthWrapper>
           <div className="noise" />
           {children}
           <Toaster
@@ -41,8 +56,8 @@ export default function RootLayout({
               },
             }}
           />
-        </body>
-      </html>
-    </ClerkProvider>
+        </AuthWrapper>
+      </body>
+    </html>
   )
 }

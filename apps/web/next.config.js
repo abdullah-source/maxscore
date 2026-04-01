@@ -3,9 +3,6 @@ const nextConfig = {
   images: {
     domains: ['cdn.maxscore.app', 'img.clerk.com'],
   },
-  experimental: {
-    serverActions: true,
-  },
 }
 
 module.exports = nextConfig

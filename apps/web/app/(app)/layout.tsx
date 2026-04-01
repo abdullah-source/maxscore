@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UserButton } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import {
   Sparkles,
@@ -11,9 +10,19 @@ import {
   MessageSquare,
   Settings,
   Crown,
+  User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+
+// Demo user button when Clerk isn't configured
+function DemoUserButton() {
+  return (
+    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+      <User className="w-5 h-5 text-white" />
+    </div>
+  )
+}
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -85,15 +94,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* User section */}
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-border">
           <div className="flex items-center gap-3">
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: 'w-10 h-10',
-                },
-              }}
-            />
+            <DemoUserButton />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">Your Account</p>
+              <p className="text-sm font-medium truncate">Demo User</p>
               <p className="text-xs text-muted-foreground">Free Plan</p>
             </div>
           </div>
@@ -109,7 +112,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <span className="font-bold gradient-text">MaxScore</span>
           </Link>
-          <UserButton />
+          <DemoUserButton />
         </div>
       </header>
 

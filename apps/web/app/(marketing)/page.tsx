@@ -49,6 +49,14 @@ function AnimatedScore({ target }: { target: number }) {
 
 // Floating particles background
 function FloatingParticles() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {[...Array(20)].map((_, i) => (
@@ -56,12 +64,12 @@ function FloatingParticles() {
           key={i}
           className="absolute w-1 h-1 bg-purple-500/30 rounded-full"
           initial={{
-            x: Math.random() * window.innerWidth,
-            y: window.innerHeight + 10,
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+            y: (typeof window !== 'undefined' ? window.innerHeight : 800) + 10,
           }}
           animate={{
             y: -10,
-            x: Math.random() * window.innerWidth,
+            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
           }}
           transition={{
             duration: 10 + Math.random() * 10,
