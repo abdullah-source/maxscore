@@ -1,0 +1,74 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.env
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.nyc_output/
+
+# Prisma
+packages/database/prisma/*.db
+packages/database/prisma/*.db-journal
+
+# Temporary
+tmp/
+temp/
+.tmp/
+*.tmp
+
+# Uploads (local development)
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+!public/**/*.png
+!public/**/*.jpg
+
+# Turbo
+.turbo/
+
+# Vercel
+.vercel/
+
+# Sentry
+.sentryclirc
+
+# OS
+Thumbs.db
