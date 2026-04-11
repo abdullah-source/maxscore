@@ -48,6 +48,7 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "https://maxscore.app",
         "https://www.maxscore.app",
+        "https://web-theta-flame-49.vercel.app",
     ]
 
     # Rate Limiting
