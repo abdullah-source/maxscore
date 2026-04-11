@@ -6,19 +6,29 @@ import { motion } from 'framer-motion'
 import { UploadDropzone } from '@/components/scan/UploadDropzone'
 import { Card, CardContent } from '@/components/ui/card'
 import { Shield, Zap, Eye } from 'lucide-react'
+import { api } from '@/lib/api'
+import { toast } from 'sonner'
 
 export default function NewScanPage() {
   const router = useRouter()
   const [isUploading, setIsUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleUpload = async (file: File) => {
     setIsUploading(true)
+    setError(null)
 
-    // Simulate upload and processing
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-
-    // Redirect to results page (would be real scan ID in production)
-    router.push('/scan/demo-result')
+    try {
+      const result = await api.analyzeFace(file)
+      toast.success('Analysis complete!')
+      router.push(`/scan/${result.id}`)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to analyze image'
+      setError(message)
+      toast.error(message)
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   return (

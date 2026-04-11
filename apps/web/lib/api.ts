@@ -1,0 +1,123 @@
+/**
+ * MaxScore API Client
+ * Connects frontend to the FastAPI backend
+ */
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://maxscore-production.up.railway.app'
+
+interface ScanResponse {
+  id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  overallScore?: number
+  percentile?: number
+  featureScores?: {
+    symmetry: number
+    jawline: number
+    eyes: number
+    nose: number
+    lips: number
+    skin: number
+  }
+  suggestions?: Suggestion[]
+  errorMessage?: string
+}
+
+interface Suggestion {
+  id: string
+  feature: string
+  score: number
+  title: string
+  description: string
+  tips: string[]
+  impact: string
+  priority: number
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+interface ChatResponse {
+  message: string
+  tokensUsed?: number
+}
+
+class ApiClient {
+  private baseUrl: string
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Request failed' }))
+      throw new Error(error.detail || 'Request failed')
+    }
+
+    return response.json()
+  }
+
+  // Health check
+  async healthCheck(): Promise<{ status: string }> {
+    return this.request('/health')
+  }
+
+  // Upload and analyze a face image
+  async analyzeFace(file: File): Promise<ScanResponse> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch(`${this.baseUrl}/api/v1/scans/analyze`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Upload failed' }))
+      throw new Error(error.detail || 'Upload failed')
+    }
+
+    return response.json()
+  }
+
+  // Get scan by ID
+  async getScan(scanId: string): Promise<ScanResponse> {
+    return this.request(`/api/v1/scans/${scanId}`)
+  }
+
+  // Get user's scan history
+  async getScanHistory(): Promise<ScanResponse[]> {
+    return this.request('/api/v1/scans')
+  }
+
+  // Chat with AI about a scan
+  async chat(scanId: string, message: string): Promise<ChatResponse> {
+    return this.request(`/api/v1/chat/${scanId}`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    })
+  }
+
+  // Get chat history for a scan
+  async getChatHistory(scanId: string): Promise<ChatMessage[]> {
+    return this.request(`/api/v1/chat/${scanId}/history`)
+  }
+}
+
+export const api = new ApiClient(API_URL)
+export type { ScanResponse, Suggestion, ChatMessage, ChatResponse }
