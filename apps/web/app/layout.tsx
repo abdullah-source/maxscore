@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { ClerkProvider } from '@clerk/nextjs'
 import { Toaster } from 'sonner'
+import dynamic from 'next/dynamic'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -20,6 +20,19 @@ export const metadata: Metadata = {
   },
 }
 
+// Conditionally load ClerkProvider only when keys are configured
+const ClerkProviderWrapper = dynamic(
+  () => {
+    const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    if (clerkKey && clerkKey.startsWith('pk_')) {
+      return import('@clerk/nextjs').then((mod) => mod.ClerkProvider)
+    }
+    // Return a passthrough component when Clerk isn't configured
+    return Promise.resolve(({ children }: { children: React.ReactNode }) => <>{children}</>)
+  },
+  { ssr: false }
+)
+
 export default function RootLayout({
   children,
 }: {
@@ -28,7 +41,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans`}>
-        <ClerkProvider>
+        <ClerkProviderWrapper>
           <div className="noise" />
           {children}
           <Toaster
@@ -41,7 +54,7 @@ export default function RootLayout({
               },
             }}
           />
-        </ClerkProvider>
+        </ClerkProviderWrapper>
       </body>
     </html>
   )

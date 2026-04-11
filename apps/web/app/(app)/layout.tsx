@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Show, UserButton, SignInButton } from '@clerk/nextjs'
 import {
   Sparkles,
   LayoutDashboard,
@@ -15,6 +14,38 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+
+// Check if Clerk is configured
+const isClerkConfigured = typeof window !== 'undefined' &&
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith('pk_')
+
+// Dynamic Clerk components - only load if configured
+let Show: any, UserButton: any, SignInButton: any
+if (isClerkConfigured) {
+  try {
+    const clerk = require('@clerk/nextjs')
+    Show = clerk.Show
+    UserButton = clerk.UserButton
+    SignInButton = clerk.SignInButton
+  } catch {
+    // Clerk not available
+  }
+}
+
+// Fallback components when Clerk isn't configured
+function DemoUserSection() {
+  return (
+    <>
+      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+        <User className="w-5 h-5 text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">Demo User</p>
+        <p className="text-xs text-muted-foreground">Free Plan</p>
+      </div>
+    </>
+  )
+}
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -86,32 +117,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* User section */}
         <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-border">
           <div className="flex items-center gap-3">
-            <Show when="signed-in">
-              <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: 'w-10 h-10',
-                  },
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">Your Account</p>
-                <p className="text-xs text-muted-foreground">Free Plan</p>
-              </div>
-            </Show>
-            <Show when="signed-out">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <User className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <SignInButton mode="modal">
-                  <button className="text-sm font-medium text-purple-400 hover:text-purple-300">
-                    Sign In
-                  </button>
-                </SignInButton>
-                <p className="text-xs text-muted-foreground">Get started free</p>
-              </div>
-            </Show>
+            {isClerkConfigured && Show ? (
+              <>
+                <Show when="signed-in">
+                  <UserButton appearance={{ elements: { avatarBox: 'w-10 h-10' } }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">Your Account</p>
+                    <p className="text-xs text-muted-foreground">Free Plan</p>
+                  </div>
+                </Show>
+                <Show when="signed-out">
+                  <DemoUserSection />
+                </Show>
+              </>
+            ) : (
+              <DemoUserSection />
+            )}
           </div>
         </div>
       </aside>
@@ -125,14 +146,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
             <span className="font-bold gradient-text">MaxScore</span>
           </Link>
-          <Show when="signed-in">
-            <UserButton />
-          </Show>
-          <Show when="signed-out">
-            <SignInButton mode="modal">
-              <Button variant="glow" size="sm">Sign In</Button>
-            </SignInButton>
-          </Show>
+          {isClerkConfigured && UserButton ? (
+            <Show when="signed-in">
+              <UserButton />
+            </Show>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <User className="w-4 h-4 text-white" />
+            </div>
+          )}
         </div>
       </header>
 
