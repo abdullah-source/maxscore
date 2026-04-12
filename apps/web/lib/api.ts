@@ -3,7 +3,7 @@
  * Connects frontend to the FastAPI backend
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://maxscore-production.up.railway.app'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://maxscore.onrender.com'
 
 interface ScanResponse {
   id: string
