@@ -42,6 +42,32 @@ class UploadCompleteRequest(BaseModel):
 _scans: Dict[str, Dict] = {}
 
 
+@router.get("/")
+async def get_scan_history(limit: int = 10, offset: int = 0):
+    """
+    Get user's scan history.
+    Returns list of past scans for the dashboard.
+    """
+    # Demo: return sample scan history
+    demo_scans = [
+        {
+            "id": "demo-scan-1",
+            "status": "COMPLETED",
+            "created_at": datetime.utcnow().isoformat(),
+            "overall_score": 7.8,
+            "percentile": 78,
+        },
+        {
+            "id": "demo-scan-2",
+            "status": "COMPLETED",
+            "created_at": datetime.utcnow().isoformat(),
+            "overall_score": 7.5,
+            "percentile": 75,
+        },
+    ]
+    return demo_scans[offset:offset + limit]
+
+
 @router.post("/", response_model=ScanInitResponse)
 async def initiate_scan():
     """

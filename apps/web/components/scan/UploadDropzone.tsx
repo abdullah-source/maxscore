@@ -14,10 +14,11 @@ interface UploadDropzoneProps {
 
 export function UploadDropzone({ onUpload, isUploading = false }: UploadDropzoneProps) {
   const [preview, setPreview] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
+    (acceptedFiles: File[]) => {
       setError(null)
       const file = acceptedFiles[0]
 
@@ -35,23 +36,28 @@ export function UploadDropzone({ onUpload, isUploading = false }: UploadDropzone
         return
       }
 
+      // Store the file for later upload
+      setSelectedFile(file)
+
       // Create preview
       const reader = new FileReader()
       reader.onload = () => {
         setPreview(reader.result as string)
       }
       reader.readAsDataURL(file)
-
-      // Upload
-      try {
-        await onUpload(file)
-      } catch (err) {
-        setError('Upload failed. Please try again.')
-        setPreview(null)
-      }
     },
-    [onUpload]
+    []
   )
+
+  const handleAnalyze = async () => {
+    if (!selectedFile) return
+
+    try {
+      await onUpload(selectedFile)
+    } catch (err) {
+      setError('Upload failed. Please try again.')
+    }
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -64,6 +70,7 @@ export function UploadDropzone({ onUpload, isUploading = false }: UploadDropzone
 
   const clearPreview = () => {
     setPreview(null)
+    setSelectedFile(null)
     setError(null)
   }
 
@@ -128,7 +135,7 @@ export function UploadDropzone({ onUpload, isUploading = false }: UploadDropzone
                 transition={{ delay: 0.2 }}
                 className="mt-6 flex justify-center"
               >
-                <Button variant="glow" size="xl" onClick={() => onUpload(new File([], ''))}>
+                <Button variant="glow" size="xl" onClick={handleAnalyze} disabled={!selectedFile}>
                   <CheckCircle className="w-5 h-5 mr-2" />
                   Analyze My Face
                 </Button>
