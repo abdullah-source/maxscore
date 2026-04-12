@@ -6,10 +6,11 @@ import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-// Check if Clerk is properly configured
+// Check if Clerk is properly configured with a real key (not placeholder)
+const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || ''
 const isClerkConfigured =
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith('pk_live') ||
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.startsWith('pk_test')
+  (clerkKey.startsWith('pk_live') || clerkKey.startsWith('pk_test')) &&
+  clerkKey.length > 30 // Real Clerk keys are 40+ characters
 
 export default function SignUpPage() {
   const router = useRouter()
