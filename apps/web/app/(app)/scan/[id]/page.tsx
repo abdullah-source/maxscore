@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ScoreCard } from '@/components/scan/ScoreCard'
@@ -81,8 +81,54 @@ const demoResults = {
   ],
 }
 
+type ResultsShape = typeof demoResults
+
+function mapApiToResults(scan: any): ResultsShape {
+  const fs = scan.featureScores || {}
+  const featureScores = Object.entries(fs).map(([key, v]: [string, any]) => ({
+    label: v?.name || key,
+    score: typeof v === 'number' ? v : (v?.score ?? 0),
+    percentile: v?.percentile ?? 0,
+  }))
+
+  const suggestions = (scan.suggestions || []).map((s: any, i: number) => ({
+    id: s.id || String(i),
+    feature: s.feature,
+    title: s.title,
+    description: s.description,
+    tips: s.tips || [],
+    priority:
+      (s.priority === 2 || s.priority === 'high') ? 'high' as const :
+      (s.priority === 1 || s.priority === 'medium') ? 'medium' as const :
+      'low' as const,
+    impact: s.impact || '',
+  }))
+
+  return {
+    overallScore: scan.overallScore ?? 0,
+    percentile: scan.percentile ?? 0,
+    featureScores,
+    suggestions,
+  }
+}
+
 export default function ScanResultsPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState<'breakdown' | 'suggestions'>('breakdown')
+  const [results, setResults] = useState<ResultsShape>(demoResults)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/scans/${params.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(scan => {
+        if (cancelled || !scan) return
+        setResults(mapApiToResults(scan))
+      })
+      .catch(() => {})
+      .finally(() => !cancelled && setLoading(false))
+    return () => { cancelled = true }
+  }, [params.id])
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -133,7 +179,7 @@ export default function ScanResultsPage({ params }: { params: { id: string } }) 
                         transition={{ type: 'spring', delay: 0.3 }}
                         className="text-5xl font-bold gradient-text"
                       >
-                        {demoResults.overallScore}
+                        {results.overallScore}
                       </motion.div>
                       <p className="text-sm text-muted-foreground mt-1">out of 10</p>
                     </div>
@@ -145,7 +191,7 @@ export default function ScanResultsPage({ params }: { params: { id: string } }) 
                   transition={{ delay: 0.5 }}
                   className="absolute -top-2 -right-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-sm font-semibold"
                 >
-                  Top {100 - demoResults.percentile}%
+                  Top {100 - results.percentile}%
                 </motion.div>
               </div>
 
@@ -165,7 +211,7 @@ export default function ScanResultsPage({ params }: { params: { id: string } }) 
                   transition={{ delay: 0.5 }}
                   className="text-muted-foreground mb-4 max-w-md"
                 >
-                  You scored higher than {demoResults.percentile}% of users. Your strongest
+                  You scored higher than {results.percentile}% of users. Your strongest
                   features are symmetry and eye area. Focus on jawline for the biggest
                   improvement.
                 </motion.p>
@@ -225,7 +271,7 @@ export default function ScanResultsPage({ params }: { params: { id: string } }) 
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {demoResults.featureScores.map((feature, index) => (
+            {results.featureScores.map((feature, index) => (
               <ScoreCard
                 key={feature.label}
                 score={feature.score}
@@ -267,7 +313,7 @@ export default function ScanResultsPage({ params }: { params: { id: string } }) 
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          {demoResults.suggestions.map((suggestion, index) => (
+          {results.suggestions.map((suggestion, index) => (
             <SuggestionCard key={suggestion.id} suggestion={suggestion} index={index} />
           ))}
 

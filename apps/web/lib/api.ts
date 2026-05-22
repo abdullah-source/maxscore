@@ -4,6 +4,8 @@
  */
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://maxscore.onrender.com'
+// Same-origin Next.js API routes (database-backed)
+const NEXT_API = ''
 
 interface ScanResponse {
   id: string
@@ -78,32 +80,40 @@ class ApiClient {
     return this.request('/health')
   }
 
-  // Upload and analyze a face image
+  // Upload and analyze a face image — routes through Next.js, saves to DB
   async analyzeFace(file: File): Promise<ScanResponse> {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await fetch(`${this.baseUrl}/api/v1/scans/analyze`, {
+    const response = await fetch(`${NEXT_API}/api/analyze`, {
       method: 'POST',
       body: formData,
     })
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Upload failed' }))
-      throw new Error(error.detail || 'Upload failed')
+      throw new Error(error.detail || error.error || 'Upload failed')
     }
 
     return response.json()
   }
 
-  // Get scan by ID
+  // Get scan by ID — from database via Next.js
   async getScan(scanId: string): Promise<ScanResponse> {
-    return this.request(`/api/v1/scans/${scanId}`)
+    const response = await fetch(`${NEXT_API}/api/scans/${scanId}`)
+    if (!response.ok) {
+      throw new Error('Scan not found')
+    }
+    return response.json()
   }
 
-  // Get user's scan history
+  // Get user's scan history — from database via Next.js
   async getScanHistory(): Promise<ScanResponse[]> {
-    return this.request('/api/v1/scans')
+    const response = await fetch(`${NEXT_API}/api/scans`)
+    if (!response.ok) {
+      throw new Error('Failed to load history')
+    }
+    return response.json()
   }
 
   // Chat with AI about a scan
