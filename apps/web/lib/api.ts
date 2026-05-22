@@ -39,8 +39,9 @@ interface ChatMessage {
 }
 
 interface ChatResponse {
-  message: string
-  tokensUsed?: number
+  reply: string
+  remaining_messages: number
+  tokens_used?: number
 }
 
 class ApiClient {
@@ -106,16 +107,17 @@ class ApiClient {
   }
 
   // Chat with AI about a scan
-  async chat(scanId: string, message: string): Promise<ChatResponse> {
-    return this.request(`/api/v1/chat/${scanId}`, {
+  async chat(message: string, scanId?: string): Promise<ChatResponse> {
+    return this.request(`/api/v1/chat/`, {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, scan_id: scanId }),
     })
   }
 
   // Get chat history for a scan
-  async getChatHistory(scanId: string): Promise<ChatMessage[]> {
-    return this.request(`/api/v1/chat/${scanId}/history`)
+  async getChatHistory(scanId?: string): Promise<{ messages: ChatMessage[]; remaining_messages: number }> {
+    const query = scanId ? `?scan_id=${scanId}` : ''
+    return this.request(`/api/v1/chat/history${query}`)
   }
 }
 

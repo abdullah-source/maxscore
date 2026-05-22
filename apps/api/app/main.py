@@ -8,9 +8,9 @@ from contextlib import asynccontextmanager
 import logging
 
 from app.config import settings
-from app.routers import auth, scans, payments, users
-# Temporarily disabled - these import heavy ML libraries
-# from app.routers import scores, chat
+from app.routers import auth, scans, payments, users, chat
+# Temporarily disabled - imports heavy ML libraries (MediaPipe via scorer)
+# from app.routers import scores
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,9 +44,9 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(scans.router, prefix="/api/v1/scans", tags=["Scans"])
-# Temporarily disabled - import heavy ML libraries
+app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
+# Temporarily disabled - imports heavy ML libraries
 # app.include_router(scores.router, prefix="/api/v1/scores", tags=["Scores"])
-# app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
 app.include_router(payments.router, prefix="/api/v1/payments", tags=["Payments"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 

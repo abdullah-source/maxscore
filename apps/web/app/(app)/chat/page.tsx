@@ -16,6 +16,7 @@ import {
   Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { api } from '@/lib/api'
 
 interface Message {
   id: string
@@ -80,6 +81,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [remainingMessages, setRemainingMessages] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -106,18 +108,31 @@ export default function ChatPage() {
     setInput('')
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const response = await api.chat(userMessage.content)
 
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: demoResponses.default,
-      timestamp: new Date(),
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: response.reply,
+        timestamp: new Date(),
+      }
+
+      setMessages((prev) => [...prev, assistantMessage])
+      setRemainingMessages(response.remaining_messages)
+    } catch (err) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: err instanceof Error
+          ? `Sorry, something went wrong: ${err.message}`
+          : 'Sorry, something went wrong. Please try again.',
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
     }
-
-    setMessages((prev) => [...prev, assistantMessage])
-    setIsLoading(false)
   }
 
   const handleSuggestedPrompt = (prompt: string) => {
@@ -307,7 +322,9 @@ export default function ChatPage() {
             </Button>
           </form>
           <p className="text-xs text-muted-foreground text-center mt-2">
-            <span className="text-purple-400">2 messages</span> remaining (Free tier)
+            <span className="text-purple-400">
+              {remainingMessages !== null ? `${remainingMessages} messages` : '3 messages'}
+            </span> remaining (Free tier)
           </p>
         </div>
       </Card>

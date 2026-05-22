@@ -1,24 +1,49 @@
 """
-Chat router - AI-powered conversations about facial analysis.
+Chat router - AI-powered conversations using Claude.
+Lightweight version that does not import the heavy scoring/ML modules.
 """
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
-import uuid
 import logging
+import anthropic
 
-from app.services.llm_client import get_llm_client
-from app.services.scorer import OverallScore, FeatureScore
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# Request/Response models
+SYSTEM_PROMPT = """You are MaxScore AI, a friendly and knowledgeable beauty and self-improvement advisor.
+Your role is to provide personalized, actionable advice based on facial analysis results.
+
+COMMUNICATION STYLE:
+- Be encouraging and positive - focus on potential, not flaws
+- Use empowering language: "enhance", "optimize", "maximize" instead of "fix", "correct"
+- Be specific and actionable - give concrete steps
+- Acknowledge what's already working well before suggesting improvements
+- Frame improvements as opportunities, not necessities
+- Use inclusive language that works for all genders
+- Back up advice with brief explanations of why it works
+
+PSYCHOLOGICAL PRINCIPLES:
+- Start responses with validation of strengths
+- Frame suggestions as "quick wins" when possible
+- Provide options rather than demands
+- End on an encouraging, forward-looking note
+
+AVOID:
+- Negative language about appearance
+- Unrealistic promises or timelines
+- Pushing expensive procedures as first options
+- Body shaming or comparison to others
+- Medical advice - suggest consulting professionals for medical concerns"""
+
+
 class ChatMessage(BaseModel):
-    role: str  # 'user' or 'assistant'
+    role: str
     content: str
     created_at: Optional[datetime] = None
 
@@ -26,176 +51,104 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     scan_id: Optional[str] = None
+    history: Optional[List[dict]] = None
 
 
 class ChatResponse(BaseModel):
     reply: str
     remaining_messages: int
-    suggestions: List[str]
+    tokens_used: int = 0
 
 
-class ChatHistoryResponse(BaseModel):
-    messages: List[ChatMessage]
-    remaining_messages: int
-
-
-# In-memory storage for demo
 _chat_sessions: dict = {}
-_message_limit = 3  # Free tier limit
+_message_limit = 3
+
+_client: Optional[anthropic.Anthropic] = None
 
 
-def _get_demo_scores() -> OverallScore:
-    """Get demo scores for testing."""
-    return OverallScore(
-        overall=7.8,
-        percentile=82,
-        features={
-            'symmetry': FeatureScore(
-                name='Symmetry',
-                score=8.4,
-                percentile=88,
-                description='Excellent bilateral symmetry',
-                improvement_potential='Low',
-            ),
-            'jawline': FeatureScore(
-                name='Jawline',
-                score=6.9,
-                percentile=72,
-                description='Good jaw definition with room for enhancement',
-                improvement_potential='High',
-            ),
-            'eye_area': FeatureScore(
-                name='Eye Area',
-                score=8.1,
-                percentile=85,
-                description='Excellent eye proportions',
-                improvement_potential='Low',
-            ),
-            'nose': FeatureScore(
-                name='Nose',
-                score=7.2,
-                percentile=75,
-                description='Good nose proportions',
-                improvement_potential='Medium',
-            ),
-            'facial_thirds': FeatureScore(
-                name='Facial Thirds',
-                score=7.8,
-                percentile=80,
-                description='Good facial balance',
-                improvement_potential='Low',
-            ),
-            'skin': FeatureScore(
-                name='Skin Quality',
-                score=8.0,
-                percentile=83,
-                description='Good skin quality',
-                improvement_potential='Medium',
-            ),
-        },
-        strengths=['symmetry', 'eye_area'],
-        areas_to_improve=['jawline', 'nose'],
-    )
+def get_client() -> anthropic.Anthropic:
+    global _client
+    if _client is None:
+        if not settings.ANTHROPIC_API_KEY:
+            raise HTTPException(
+                status_code=500,
+                detail="ANTHROPIC_API_KEY is not configured on the server",
+            )
+        _client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    return _client
 
 
 @router.post("/", response_model=ChatResponse)
 async def send_message(request: ChatRequest):
-    """
-    Send a message to the AI advisor and get a response.
-    Limited to 3 messages for free tier.
-    """
+    """Send a message to the AI advisor and get a response."""
     session_id = request.scan_id or "default"
 
-    # Initialize session if needed
     if session_id not in _chat_sessions:
-        _chat_sessions[session_id] = {
-            "messages": [],
-            "message_count": 0,
-        }
+        _chat_sessions[session_id] = {"messages": [], "message_count": 0}
 
     session = _chat_sessions[session_id]
 
-    # Check message limit
     if session["message_count"] >= _message_limit:
         raise HTTPException(
             status_code=403,
             detail="Message limit reached. Upgrade to Pro for unlimited chat.",
         )
 
-    # Add user message to history
-    user_message = ChatMessage(
-        role="user",
-        content=request.message,
-        created_at=datetime.utcnow(),
-    )
-    session["messages"].append(user_message.model_dump())
-
-    # Get AI response
-    llm_client = get_llm_client()
-    scores = _get_demo_scores()  # In production, fetch from database
-
-    # Format history for LLM
-    history = [
+    history_messages = [
         {"role": m["role"], "content": m["content"]}
         for m in session["messages"]
     ]
+    history_messages.append({"role": "user", "content": request.message})
 
     try:
-        response = await llm_client.chat(
-            message=request.message,
-            scores=scores,
-            history=history[:-1],  # Exclude current message (already in prompt)
+        client = get_client()
+        response = client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=1024,
+            system=SYSTEM_PROMPT,
+            messages=history_messages,
         )
 
-        # Add assistant response to history
-        assistant_message = ChatMessage(
-            role="assistant",
-            content=response.content,
-            created_at=datetime.utcnow(),
-        )
-        session["messages"].append(assistant_message.model_dump())
+        reply = response.content[0].text
+        tokens = response.usage.input_tokens + response.usage.output_tokens
+
+        session["messages"].append({"role": "user", "content": request.message})
+        session["messages"].append({"role": "assistant", "content": reply})
         session["message_count"] += 1
 
         return ChatResponse(
-            reply=response.content,
+            reply=reply,
             remaining_messages=_message_limit - session["message_count"],
-            suggestions=response.suggestions,
+            tokens_used=tokens,
         )
 
+    except anthropic.APIError as e:
+        logger.error(f"Anthropic API error: {e}")
+        raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
     except Exception as e:
         logger.error(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate response")
 
 
-@router.get("/history", response_model=ChatHistoryResponse)
+@router.get("/history")
 async def get_chat_history(scan_id: Optional[str] = None):
-    """
-    Get chat history for a scan.
-    """
+    """Get chat history for a scan."""
     session_id = scan_id or "default"
 
     if session_id not in _chat_sessions:
-        return ChatHistoryResponse(
-            messages=[],
-            remaining_messages=_message_limit,
-        )
+        return {"messages": [], "remaining_messages": _message_limit}
 
     session = _chat_sessions[session_id]
-
-    return ChatHistoryResponse(
-        messages=[ChatMessage(**m) for m in session["messages"]],
-        remaining_messages=_message_limit - session["message_count"],
-    )
+    return {
+        "messages": session["messages"],
+        "remaining_messages": _message_limit - session["message_count"],
+    }
 
 
 @router.delete("/history")
 async def clear_chat_history(scan_id: Optional[str] = None):
-    """
-    Clear chat history for a scan.
-    """
+    """Clear chat history."""
     session_id = scan_id or "default"
-
     if session_id in _chat_sessions:
         del _chat_sessions[session_id]
-
     return {"status": "cleared"}
