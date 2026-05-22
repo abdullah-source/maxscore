@@ -100,7 +100,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* Pro upgrade card */}
-          <div className="mt-8 p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+          <Link href="/pricing" className="block mt-8 p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 hover:border-purple-500/40 transition-colors">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-5 h-5 text-yellow-400" />
               <span className="font-semibold">Upgrade to Pro</span>
@@ -111,7 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Button variant="glow" size="sm" className="w-full">
               Upgrade Now
             </Button>
-          </div>
+          </Link>
         </div>
 
         {/* User section */}

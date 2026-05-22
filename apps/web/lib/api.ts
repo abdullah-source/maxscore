@@ -116,12 +116,18 @@ class ApiClient {
     return response.json()
   }
 
-  // Chat with AI about a scan
+  // Chat with AI — routes through Next.js (avoids CORS)
   async chat(message: string, scanId?: string): Promise<ChatResponse> {
-    return this.request(`/api/v1/chat/`, {
+    const response = await fetch(`${NEXT_API}/api/chat`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, scan_id: scanId }),
     })
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Chat failed' }))
+      throw new Error(err.error || 'Chat failed')
+    }
+    return response.json()
   }
 
   // Get chat history for a scan

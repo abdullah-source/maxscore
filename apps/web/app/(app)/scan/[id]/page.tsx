@@ -298,9 +298,11 @@ export default function ScanResultsPage({ params }: { params: { id: string } }) 
                   </div>
                   <p className="font-medium mb-1">Radar Chart Available in Pro</p>
                   <p className="text-sm">Upgrade to see detailed comparisons</p>
-                  <Button variant="glow" size="sm" className="mt-4">
-                    Upgrade to Pro
-                  </Button>
+                  <Link href="/pricing">
+                    <Button variant="glow" size="sm" className="mt-4">
+                      Upgrade to Pro
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </CardContent>
@@ -325,9 +327,11 @@ export default function ScanResultsPage({ params }: { params: { id: string } }) 
               <p className="text-sm text-muted-foreground mb-4">
                 Pro users get unlimited AI-powered suggestions and detailed action plans
               </p>
-              <Button variant="glow">
-                Upgrade to Pro <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
+              <Link href="/pricing">
+                <Button variant="glow">
+                  Upgrade to Pro <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </motion.div>

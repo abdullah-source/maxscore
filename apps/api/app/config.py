@@ -49,6 +49,7 @@ class Settings(BaseSettings):
         "https://maxscore.app",
         "https://www.maxscore.app",
         "https://web-theta-flame-49.vercel.app",
+        "https://maxscore-web.vercel.app",
     ]
 
     # Rate Limiting
